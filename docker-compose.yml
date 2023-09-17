@@ -1,0 +1,42 @@
+version: '3'
+
+services:
+  nodejs-app:
+    build: ./node-js-getting-started
+    ports:
+      - "5000:5000"
+    depends_on:
+      - loki
+    logging:
+      driver: "loki"
+      options:
+        loki-url: "http://loki:3100/loki/api/v1/push"
+
+  loki:
+    image: grafana/loki:2.5.0
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - ./loki-config:/etc/loki
+
+  promtail:
+    image: grafana/promtail:2.5.0
+    volumes:
+      - ./promtail-config:/etc/promtail
+    command: -config.file=/etc/promtail/config.yaml
+
+  grafana:
+    image: grafana/grafana:8.1.4
+    ports:
+      - "3000:3000"
+    depends_on:
+      - loki
+    environment:
+      - GF_INSTALL_PLUGINS=grafana-loki-datasource
+    volumes:
+      - ./grafana-config:/etc/grafana
+
+networks:
+  default:
+    driver: bridge
